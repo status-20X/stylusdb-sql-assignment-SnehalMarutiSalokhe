@@ -1,8 +1,6 @@
-// tests/index.test.js 
 const readCSV = require('../../src/csvReader');
 const parseQuery = require('../../src/queryParser');
 const executeSELECTQuery = require('../../src/index');
-
 
 test('Read CSV File', async () => {
     const data = await readCSV('./sample.csv');
@@ -12,14 +10,13 @@ test('Read CSV File', async () => {
     expect(data[0].age).toBe('30'); //ignore the string type here, we will fix this later
 });
 
-
 test('Parse SQL Query', () => {
     const query = 'SELECT id, name FROM sample';
     const parsed = parseQuery(query);
     expect(parsed).toEqual({
         fields: ['id', 'name'],
         table: 'sample',
-        "whereClause": null
+        whereClauses: []
     });
 });
 
@@ -39,7 +36,11 @@ test('Parse SQL Query with WHERE Clause', () => {
     expect(parsed).toEqual({
         fields: ['id', 'name'],
         table: 'sample',
-        whereClause: 'age = 25'
+        whereClauses: [{
+          field: "age",
+          operator: "=",
+          value: "25",
+        }],
     });
 });
 
@@ -50,5 +51,30 @@ test('Execute SQL Query with WHERE Clause', async () => {
     expect(result[0]).toHaveProperty('id');
     expect(result[0]).toHaveProperty('name');
     expect(result[0].id).toBe('2');
+});
+
+test('Parse SQL Query with Multiple WHERE Clauses', () => {
+    const query = 'SELECT id, name FROM sample WHERE age = 30 AND name = John';
+    const parsed = parseQuery(query);
+    expect(parsed).toEqual({
+        fields: ['id', 'name'],
+        table: 'sample',
+        whereClauses: [{
+            "field": "age",
+            "operator": "=",
+            "value": "30",
+        }, {
+            "field": "name",
+            "operator": "=",
+            "value": "John",
+        }]
+    });
+});
+
+test('Execute SQL Query with Multiple WHERE Clause', async () => {
+    const query = 'SELECT id, name FROM sample WHERE age = 30 AND name = John';
+    const result = await executeSELECTQuery(query);
+    expect(result.length).toBe(1);
+    expect(result[0]).toEqual({ id: '1', name: 'John' });
 });
 
