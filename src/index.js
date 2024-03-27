@@ -83,7 +83,7 @@ function createResultRow(mainRow, joinRow, fields, table, includeAllMainFields) 
 }
 
 async function executeSELECTQuery(query) {
-    const { fields, table, whereClauses, joinType, joinTable, joinCondition } = parseQuery(query);
+    const { fields, table, whereClauses, joinType, joinTable, joinCondition, groupByFields, hasAggregateWithoutGroupBy } = parseQuery(query);
     let data = await readCSV(`${table}.csv`);
 
     // Perform INNER JOIN if specified
@@ -103,25 +103,60 @@ async function executeSELECTQuery(query) {
                 throw new Error(`Unsupported JOIN type: ${joinType}`);
         }
     }
-
-    console.log("AFTER JOIN", data);
-    console.log("WHERE CLAUSES", whereClauses);
     // Apply WHERE clause filtering after JOIN (or on the original data if no join)
-    const filteredData = whereClauses.length > 0
+    let filteredData = whereClauses.length > 0
         ? data.filter(row => whereClauses.every(clause => evaluateCondition(row, clause)))
         : data;
 
-    // console.log("AFTER WHERE", filteredData);
+    let groupResults = filteredData;
+    console.log({ hasAggregateWithoutGroupBy });
+    if (hasAggregateWithoutGroupBy) {
+        // Special handling for queries like 'SELECT COUNT(*) FROM table'
+        const result = {};
 
-    // Select the specified fields
-    return filteredData.map(row => {
-        const selectedRow = {};
+        console.log({ filteredData })
+
         fields.forEach(field => {
-            // Assuming 'field' is just the column name without table prefix
-            selectedRow[field] = row[field];
+            const match = /(\w+)\((\*|\w+)\)/.exec(field);
+            if (match) {
+                const [, aggFunc, aggField] = match;
+                switch (aggFunc.toUpperCase()) {
+                    case 'COUNT':
+                        result[field] = filteredData.length;
+                        break;
+                    case 'SUM':
+                        result[field] = filteredData.reduce((acc, row) => acc + parseFloat(row[aggField]), 0);
+                        break;
+                    case 'AVG':
+                        result[field] = filteredData.reduce((acc, row) => acc + parseFloat(row[aggField]), 0) / filteredData.length;
+                        break;
+                    case 'MIN':
+                        result[field] = Math.min(...filteredData.map(row => parseFloat(row[aggField])));
+                        break;
+                    case 'MAX':
+                        result[field] = Math.max(...filteredData.map(row => parseFloat(row[aggField])));
+                        break;
+                    // Additional aggregate functions can be handled here
+                }
+            }
         });
-        return selectedRow;
-    });
+
+        return [result];
+        // Add more cases here if needed for other aggregates
+    } else if (groupByFields) {
+        groupResults = applyGroupBy(filteredData, groupByFields, fields);
+        return groupResults;
+    } else {
+        // Select the specified fields
+        return groupResults.map(row => {
+            const selectedRow = {};
+            fields.forEach(field => {
+                // Assuming 'field' is just the column name without table prefix
+                selectedRow[field] = row[field];
+            });
+            return selectedRow;
+        });
+    }
 }
 
 function evaluateCondition(row, clause) {
@@ -135,8 +170,6 @@ function evaluateCondition(row, clause) {
     // Parse row value and condition value based on their actual types
     const rowValue = parseValue(row[field]);
     let conditionValue = parseValue(value);
-
-    // console.log("EVALUATING", rowValue, operator, conditionValue, typeof (rowValue), typeof (conditionValue));
 
     switch (operator) {
         case '=': return rowValue === conditionValue;
@@ -168,6 +201,71 @@ function parseValue(value) {
     }
     // Assume value is a string if not a number
     return value;
+}
+
+function applyGroupBy(data, groupByFields, aggregateFunctions) {
+    const groupResults = {};
+
+    data.forEach(row => {
+        // Generate a key for the group
+        const groupKey = groupByFields.map(field => row[field]).join('-');
+
+        
+        if (!groupResults[groupKey]) {
+            groupResults[groupKey] = { count: 0, sums: {}, mins: {}, maxes: {} };
+            groupByFields.forEach(field => groupResults[groupKey][field] = row[field]);
+        }
+
+       
+        groupResults[groupKey].count += 1;
+        aggregateFunctions.forEach(func => {
+            const match = /(\w+)\((\w+)\)/.exec(func);
+            if (match) {
+                const [, aggFunc, aggField] = match;
+                const value = parseFloat(row[aggField]);
+
+                switch (aggFunc.toUpperCase()) {
+                    case 'SUM':
+                        groupResults[groupKey].sums[aggField] = (groupResults[groupKey].sums[aggField] || 0) + value;
+                        break;
+                    case 'MIN':
+                        groupResults[groupKey].mins[aggField] = Math.min(groupResults[groupKey].mins[aggField] || value, value);
+                        break;
+                    case 'MAX':
+                        groupResults[groupKey].maxes[aggField] = Math.max(groupResults[groupKey].maxes[aggField] || value, value);
+                        break;
+                    // Additional aggregate functions can be added here
+                }
+            }
+        });
+    });
+
+    return Object.values(groupResults).map(group => {
+        const finalGroup = {};
+        groupByFields.forEach(field => finalGroup[field] = group[field]);
+        aggregateFunctions.forEach(func => {
+            const match = /(\w+)\((\*|\w+)\)/.exec(func);
+            if (match) {
+                const [, aggFunc, aggField] = match;
+                switch (aggFunc.toUpperCase()) {
+                    case 'SUM':
+                        finalGroup[func] = group.sums[aggField];
+                        break;
+                    case 'MIN':
+                        finalGroup[func] = group.mins[aggField];
+                        break;
+                    case 'MAX':
+                        finalGroup[func] = group.maxes[aggField];
+                        break;
+                    case 'COUNT':
+                        finalGroup[func] = group.count;
+                        break;
+                }
+            }
+        });
+
+        return finalGroup;
+    });
 }
 
 
