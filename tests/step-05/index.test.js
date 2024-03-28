@@ -43,9 +43,11 @@ test('Parse SQL Query', () => {
         joinType: null,
         groupByFields: null,
         hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
+        "orderByFields": null,
+        "limit": null
     });
 });
+
 
 test('Parse SQL Query with WHERE Clause', () => {
     const query = 'SELECT id, name FROM student WHERE age = 25';
@@ -63,30 +65,7 @@ test('Parse SQL Query with WHERE Clause', () => {
         joinType: null,
         groupByFields: null,
         hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
-    });
-});
-
-test('Parse SQL Query with Multiple WHERE Clauses', () => {
-    const query = 'SELECT id, name FROM student WHERE age = 30 AND name = John';
-    const parsed = parseQuery(query);
-    expect(parsed).toEqual({
-        fields: ['id', 'name'],
-        table: 'student',
-        whereClauses: [{
-            "field": "age",
-            "operator": "=",
-            "value": "30",
-        }, {
-            "field": "name",
-            "operator": "=",
-            "value": "John",
-        }],
-        joinCondition: null,
-        joinTable: null,
-        joinType: null,
-        groupByFields: null,
-        hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
+        "orderByFields": null,
+        "limit": null
     });
 });

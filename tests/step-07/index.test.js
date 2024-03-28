@@ -51,7 +51,6 @@ test('Execute SQL Query with Not Equal to', async () => {
     expect(result[0]).toHaveProperty('name');
 });
 
-
 test('Parse SQL Query', () => {
     const query = 'SELECT id, name FROM student';
     const parsed = parseQuery(query);
@@ -64,9 +63,11 @@ test('Parse SQL Query', () => {
         joinType: null,
         groupByFields: null,
         hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
+        "orderByFields": null,
+        "limit": null
     });
 });
+
 
 test('Parse SQL Query with WHERE Clause', () => {
     const query = 'SELECT id, name FROM student WHERE age = 25';
@@ -84,7 +85,8 @@ test('Parse SQL Query with WHERE Clause', () => {
         joinType: null,
         groupByFields: null,
         hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
+        "orderByFields": null,
+        "limit": null
     });
 });
 
@@ -107,7 +109,8 @@ test('Parse SQL Query with Multiple WHERE Clauses', () => {
         joinTable: null,
         joinType: null,
         groupByFields: null,
-         hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
+        hasAggregateWithoutGroupBy: false,
+        "orderByFields": null,
+        "limit": null
     });
 });

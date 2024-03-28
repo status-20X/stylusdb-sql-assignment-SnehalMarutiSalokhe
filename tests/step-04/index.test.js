@@ -9,7 +9,6 @@ test('Read CSV File', async () => {
     expect(data[0].name).toBe('John');
     expect(data[0].age).toBe('30'); 
 });
-
 test('Parse SQL Query', () => {
     const query = 'SELECT id, name FROM student';
     const parsed = parseQuery(query);
@@ -22,7 +21,8 @@ test('Parse SQL Query', () => {
         joinType: null,
         groupByFields: null,
         hasAggregateWithoutGroupBy: false,
-        "orderByFields": null
+        "orderByFields": null,
+        "limit": null
     });
 });
 
