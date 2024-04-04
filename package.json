@@ -4,7 +4,8 @@
   "description": "A minimal SQL based DB based on CSV files. For educational purposes only.",
   "main": "./src/index.js",
   "directories": {
-    "doc": "docs"
+    "doc": "docs",
+    "test": "tests"
   },
   "scripts": {
     "test": "jest",
@@ -38,11 +39,12 @@
   "author": "Chakshu Gautam",
   "license": "ISC",
   "devDependencies": {
+    "csv-parser": "^3.0.0",
     "jest": "^29.7.0"
   },
   "dependencies": {
-    "csv-parser": "^3.0.0",
     "json2csv": "^6.0.0-alpha.2",
+    "stylusdb-sql": "^0.1.6",
     "xterm": "^5.3.0"
   }
 }
